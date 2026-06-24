@@ -1103,14 +1103,6 @@
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
-    function shade([r, g, b], factor) {
-      if (factor >= 0) {
-        return [r + (255 - r) * factor, g + (255 - g) * factor, b + (255 - b) * factor];
-      }
-      const k = 1 + factor;
-      return [r * k, g * k, b * k];
-    }
-
     function woodFill(x, y, w, h, light, dark) {
       const g = ctx.createLinearGradient(x, y, x + w, y + h);
       g.addColorStop(0, light);
@@ -1374,8 +1366,6 @@
     }
 
     function drawGlossyBall(x, y, radius, bin, alpha) {
-      const base = binRGB(typeof bin === "number" ? bin : 0);
-      const rgb = (c) => `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.shadowColor = "rgba(30, 34, 38, 0.38)";
@@ -1390,9 +1380,9 @@
         radius * 1.15,
       );
       g.addColorStop(0, "#ffffff");
-      g.addColorStop(0.26, rgb(shade(base, 0.78)));
-      g.addColorStop(0.6, rgb(shade(base, 0.18)));
-      g.addColorStop(1, rgb(shade(base, -0.42)));
+      g.addColorStop(0.24, "#e9edf0");
+      g.addColorStop(0.54, "#aeb7bd");
+      g.addColorStop(1, "#58636b");
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
