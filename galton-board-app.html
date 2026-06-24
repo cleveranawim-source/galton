@@ -1,0 +1,1254 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>갈튼보드 시뮬레이터</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #15202b;
+      --muted: #647181;
+      --line: #d8e1ea;
+      --paper: #ffffff;
+      --paper-2: #f7fafc;
+      --teal: #0d7b75;
+      --teal-dark: #075e5a;
+      --coral: #de6848;
+      --gold: #d99a2b;
+      --blue: #566fd6;
+      --lavender: #eef0ff;
+      --mint: #e8f7f2;
+      --peach: #fff0e8;
+      --shadow: 0 22px 58px rgba(32, 45, 58, 0.16);
+      --soft-shadow: 0 10px 26px rgba(32, 45, 58, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(159, 84, 55, 0.18) 0 1px, transparent 1px 32px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(237, 239, 232, 0.72)),
+        #d8ddd5;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(294px, 368px) minmax(0, 1fr);
+      gap: 18px;
+      width: min(1380px, calc(100vw - 28px));
+      min-height: calc(100vh - 28px);
+      margin: 14px auto;
+    }
+
+    .side,
+    .stage {
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: calc(100vh - 28px);
+      padding: 16px;
+      overflow-y: auto;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 252, 251, 0.93)),
+        var(--paper);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-rows: auto minmax(390px, 1fr) auto;
+      min-height: calc(100vh - 28px);
+      background: linear-gradient(180deg, #4a3825, #2f251a);
+    }
+
+    .title {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(13, 123, 117, 0.95), rgba(24, 104, 142, 0.9)),
+        var(--teal);
+      color: #fff;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .eyebrow {
+      width: max-content;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.16;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      max-width: 30em;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 14px;
+      line-height: 1.48;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1.25fr 0.9fr 0.9fr;
+      gap: 8px;
+    }
+
+    .btn {
+      position: relative;
+      min-height: 44px;
+      border: 1px solid rgba(108, 124, 143, 0.24);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--ink);
+      box-shadow: 0 5px 12px rgba(32, 45, 58, 0.07);
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(13, 123, 117, 0.46);
+      box-shadow: 0 8px 18px rgba(32, 45, 58, 0.12);
+    }
+
+    .btn.primary {
+      border-color: var(--teal);
+      background: linear-gradient(135deg, var(--teal), #159c92);
+      color: #fff;
+    }
+
+    .btn.warn {
+      color: #ad4629;
+      background: #fff8f4;
+    }
+
+    .panel {
+      display: grid;
+      gap: 10px;
+      padding: 13px;
+      border: 1px solid rgba(216, 225, 234, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 6px 16px rgba(32, 45, 58, 0.05);
+    }
+
+    .control label,
+    .select-row label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #2d3a48;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .value {
+      color: var(--teal);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+
+    select {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .switches {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 30px;
+      color: #2f3d4b;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--teal);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      min-height: 76px;
+      padding: 12px;
+      border: 1px solid rgba(216, 225, 234, 0.9);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fff, #f8fbfd);
+    }
+
+    .stat b {
+      display: block;
+      color: #10202f;
+      font-size: 24px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .note {
+      padding: 13px 14px;
+      border-radius: 8px;
+      border: 1px solid #cceae2;
+      background: linear-gradient(135deg, var(--mint), #f8fffc);
+      color: #24524f;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .stage-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 17px;
+      border-bottom: 1px solid rgba(74, 50, 29, 0.42);
+      background:
+        linear-gradient(90deg, rgba(255, 247, 224, 0.96), rgba(226, 194, 132, 0.9));
+    }
+
+    .stage-title {
+      display: grid;
+      gap: 4px;
+    }
+
+    .stage-head h2 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: 0;
+    }
+
+    .stage-caption {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chips {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 31px;
+      padding: 0 11px;
+      border: 1px solid rgba(216, 225, 234, 0.96);
+      border-radius: 999px;
+      background: #fff;
+      color: #374657;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 4px 10px rgba(32, 45, 58, 0.05);
+    }
+
+    .chip.state {
+      color: var(--teal-dark);
+      background: var(--mint);
+      border-color: #cceae2;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      min-height: 390px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.18), transparent 36%),
+        linear-gradient(180deg, #5f4a31, #2f251a);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 390px;
+    }
+
+    .empty {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(380px, calc(100% - 32px));
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      padding: 17px 18px;
+      border: 1px solid rgba(216, 225, 234, 0.86);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: var(--soft-shadow);
+      color: rgba(23, 33, 43, 0.72);
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .empty.hidden {
+      display: none;
+    }
+
+    .bottom {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(250px, 370px);
+      gap: 14px;
+      padding: 14px 16px;
+      border-top: 1px solid rgba(74, 50, 29, 0.35);
+      background: linear-gradient(180deg, #fff8e8, #f0dfb6);
+    }
+
+    .question-box,
+    .mini-table {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .question-box h3,
+    .mini-table h3 {
+      margin: 0;
+      color: #273849;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .question-box ol {
+      margin: 0;
+      padding-left: 20px;
+      color: #344251;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .bins {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(22px, 1fr);
+      align-items: end;
+      gap: 6px;
+      height: 128px;
+      padding: 8px 4px 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border-left: 1px solid rgba(100, 113, 129, 0.22);
+      border-bottom: 1px solid rgba(100, 113, 129, 0.3);
+      background:
+        linear-gradient(rgba(100, 113, 129, 0.08) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(247, 250, 252, 0.78));
+      background-size: 100% 25%;
+      border-radius: 8px 8px 3px 3px;
+    }
+
+    .bin-col {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      align-items: end;
+      justify-items: center;
+      gap: 5px;
+      min-width: 22px;
+      height: 100%;
+      color: #3b4652;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .bin-bar {
+      width: min(100%, 28px);
+      min-height: 2px;
+      border-radius: 6px 6px 2px 2px;
+      background: linear-gradient(180deg, var(--coral), var(--teal));
+      box-shadow: 0 3px 8px rgba(13, 123, 117, 0.18);
+      transition: height 160ms ease;
+    }
+
+    .bin-label {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        width: min(100vw - 18px, 760px);
+      }
+
+      .side {
+        order: 2;
+        max-height: none;
+      }
+
+      .stage {
+        min-height: 68vh;
+      }
+
+      .bottom {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 540px) {
+      .app {
+        width: calc(100vw - 12px);
+        margin: 8px auto;
+      }
+
+      .toolbar,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .stage-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .chips {
+        justify-content: flex-start;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="side" aria-label="갈튼보드 설정">
+      <div class="title">
+        <span class="eyebrow">확률 실험</span>
+        <h1>갈튼보드 시뮬레이터</h1>
+        <p class="subtitle">구슬 하나의 우연이 많이 모이면 어떤 분포가 되는지 눈으로 확인해 보세요.</p>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn primary" id="startBtn" type="button">시작</button>
+        <button class="btn" id="dropBtn" type="button">1개</button>
+        <button class="btn warn" id="resetBtn" type="button">초기화</button>
+      </div>
+
+      <section class="panel control">
+        <label for="rows">못 줄 수 <span class="value" id="rowsValue">10</span></label>
+        <input id="rows" type="range" min="5" max="14" step="1" value="10" />
+      </section>
+
+      <section class="panel control">
+        <label for="target">구슬 목표 <span class="value" id="targetValue">300</span></label>
+        <input id="target" type="range" min="50" max="1200" step="50" value="300" />
+      </section>
+
+      <section class="panel control">
+        <label for="rate">떨어지는 속도 <span class="value" id="rateValue">8개/초</span></label>
+        <input id="rate" type="range" min="1" max="40" step="1" value="8" />
+      </section>
+
+      <section class="panel control">
+        <label for="bias">오른쪽 확률 <span class="value" id="biasValue">50%</span></label>
+        <input id="bias" type="range" min="5" max="95" step="1" value="50" />
+      </section>
+
+      <section class="panel select-row">
+        <label for="mode">보기 방식</label>
+        <select id="mode">
+          <option value="both">구슬 + 히스토그램</option>
+          <option value="balls">구슬 움직임 중심</option>
+          <option value="hist">분포 중심</option>
+        </select>
+      </section>
+
+      <section class="panel switches">
+        <label class="check"><input id="expected" type="checkbox" checked /> 이론 분포 표시</label>
+        <label class="check"><input id="soundless" type="checkbox" checked /> 조용한 수업 모드</label>
+      </section>
+
+      <section class="stats" aria-label="실험 통계">
+        <div class="stat"><b id="countStat">0</b><span>떨어진 구슬</span></div>
+        <div class="stat"><b id="meanStat">-</b><span>평균 칸</span></div>
+        <div class="stat"><b id="spreadStat">-</b><span>표준편차</span></div>
+        <div class="stat"><b id="peakStat">-</b><span>가장 많은 칸</span></div>
+      </section>
+
+      <div class="note">
+        오른쪽 확률을 50%에서 바꾸면 분포 중심이 이동합니다. 공정한 동전과 치우친 동전을 비교하듯 볼 수 있어요.
+      </div>
+    </aside>
+
+    <section class="stage" aria-label="갈튼보드 실험 화면">
+      <header class="stage-head">
+        <div class="stage-title">
+          <h2>무작위 경로와 누적 분포</h2>
+          <p class="stage-caption">많이 떨어질수록 가운데로 모이는 패턴이 선명해집니다.</p>
+        </div>
+        <div class="chips">
+          <span class="chip" id="binChip">11칸</span>
+          <span class="chip" id="probChip">p = 0.50</span>
+          <span class="chip state" id="stateChip">대기 중</span>
+        </div>
+      </header>
+
+      <div class="canvas-wrap">
+        <canvas id="board"></canvas>
+        <div class="empty" id="emptyHint">시작을 누르거나 '1개' 버튼으로 구슬을 떨어뜨려 보세요.</div>
+      </div>
+
+      <footer class="bottom">
+        <div class="question-box">
+          <h3>수업 질문</h3>
+          <ol>
+            <li>구슬 하나의 위치는 예측하기 어려운데, 전체 모양은 왜 예측 가능해질까요?</li>
+            <li>못 줄 수를 늘리면 가운데와 양쪽의 차이가 어떻게 달라지나요?</li>
+            <li>오른쪽 확률을 60%로 바꾸면 평균 위치는 어느 쪽으로 움직이나요?</li>
+          </ol>
+        </div>
+        <div class="mini-table">
+          <h3>칸별 분포</h3>
+          <div class="bins" id="bins"></div>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+    const controls = {
+      rows: document.getElementById("rows"),
+      target: document.getElementById("target"),
+      rate: document.getElementById("rate"),
+      bias: document.getElementById("bias"),
+      mode: document.getElementById("mode"),
+      expected: document.getElementById("expected"),
+      soundless: document.getElementById("soundless"),
+    };
+    const ui = {
+      startBtn: document.getElementById("startBtn"),
+      dropBtn: document.getElementById("dropBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      rowsValue: document.getElementById("rowsValue"),
+      targetValue: document.getElementById("targetValue"),
+      rateValue: document.getElementById("rateValue"),
+      biasValue: document.getElementById("biasValue"),
+      countStat: document.getElementById("countStat"),
+      meanStat: document.getElementById("meanStat"),
+      spreadStat: document.getElementById("spreadStat"),
+      peakStat: document.getElementById("peakStat"),
+      binChip: document.getElementById("binChip"),
+      probChip: document.getElementById("probChip"),
+      stateChip: document.getElementById("stateChip"),
+      bins: document.getElementById("bins"),
+      emptyHint: document.getElementById("emptyHint"),
+    };
+
+    const state = {
+      running: false,
+      rows: 10,
+      target: 300,
+      rate: 8,
+      bias: 0.5,
+      bins: [],
+      balls: [],
+      fallingBalls: [],
+      settledBalls: [],
+      dropped: 0,
+      lastTime: 0,
+      spawnCarry: 0,
+      layout: null,
+    };
+
+    function factorialRatio(n, k) {
+      let result = 1;
+      for (let i = 1; i <= k; i += 1) {
+        result *= (n - k + i) / i;
+      }
+      return result;
+    }
+
+    function binomial(n, k, p) {
+      return factorialRatio(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+    }
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      computeLayout();
+      draw();
+    }
+
+    function computeLayout() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const rows = state.rows;
+      const marginX = Math.max(30, w * 0.065);
+      const marginY = Math.max(24, h * 0.045);
+      const boardX = marginX;
+      const boardY = marginY;
+      const boardW = w - marginX * 2;
+      const boardH = h - marginY * 1.35;
+      const frame = Math.max(18, Math.min(38, boardW * 0.045));
+      const innerX = boardX + frame;
+      const innerY = boardY + frame;
+      const innerW = boardW - frame * 2;
+      const innerH = boardH - frame * 2;
+      const top = innerY + Math.max(34, innerH * 0.08);
+      const binTop = innerY + innerH * 0.58;
+      const histBase = innerY + innerH - Math.max(22, innerH * 0.035);
+      const binBottom = histBase - 7;
+      const boardHeight = binTop - top - Math.max(18, innerH * 0.035);
+      const rowGap = boardHeight / Math.max(rows, 1);
+      const colGap = Math.min(innerW / (rows + 2.7), rowGap * 1.12);
+      const centerX = w / 2;
+      const pegRadius = Math.max(5, Math.min(10, colGap * 0.17));
+      const ballRadius = Math.max(5.4, Math.min(9.2, colGap * 0.18));
+      const slotGap = Math.min(innerW / (rows + 1.6), colGap * 1.06);
+      const slotsY = binTop;
+      const stackTop = binTop + Math.max(12, ballRadius * 1.5);
+      const stackHeight = Math.max(80, binBottom - stackTop - 6);
+      const expectedPeak = Math.max(
+        8,
+        ...Array.from({ length: rows + 1 }, (_, i) => binomial(rows, i, state.bias) * state.target),
+      );
+      const binInnerWidth = Math.max(10, slotGap * 0.5);
+      const stackColumns = Math.max(1, Math.floor(binInnerWidth / Math.max(4, ballRadius * 0.86)));
+      const estimatedRows = Math.ceil(expectedPeak / stackColumns);
+      const stackRadius = Math.max(1.8, Math.min(ballRadius * 0.62, stackHeight / Math.max(10, estimatedRows * 2.08)));
+      state.layout = {
+        w, h, top, rowGap, colGap, centerX, pegRadius, ballRadius, slotsY,
+        histBase, slotGap, stackTop, stackHeight, stackRadius, stackColumns,
+        boardX, boardY, boardW, boardH, frame, innerX, innerY, innerW, innerH, binTop, binBottom,
+      };
+    }
+
+    function resetBins() {
+      state.bins = Array.from({ length: state.rows + 1 }, () => 0);
+      state.balls = [];
+      state.fallingBalls = [];
+      state.settledBalls = [];
+      state.dropped = 0;
+      state.spawnCarry = 0;
+      state.running = false;
+      ui.startBtn.textContent = "시작";
+      updateUi();
+      draw();
+    }
+
+    function syncControls() {
+      state.rows = Number(controls.rows.value);
+      state.target = Number(controls.target.value);
+      state.rate = Number(controls.rate.value);
+      state.bias = Number(controls.bias.value) / 100;
+      ui.rowsValue.textContent = state.rows;
+      ui.targetValue.textContent = state.target;
+      ui.rateValue.textContent = `${state.rate}개/초`;
+      ui.biasValue.textContent = `${Math.round(state.bias * 100)}%`;
+      ui.binChip.textContent = `${state.rows + 1}칸`;
+      ui.probChip.textContent = `p = ${state.bias.toFixed(2)}`;
+      if (state.bins.length !== state.rows + 1) resetBins();
+      computeLayout();
+      updateUi();
+      draw();
+    }
+
+    function makeBall() {
+      const path = [];
+      let rights = 0;
+      for (let r = 0; r < state.rows; r += 1) {
+        const goRight = Math.random() < state.bias;
+        if (goRight) rights += 1;
+        path.push(rights);
+      }
+      return {
+        path,
+        finalBin: rights,
+        progress: 0,
+        done: false,
+        hue: 0,
+      };
+    }
+
+    function dropOne() {
+      if (state.dropped >= state.target) return;
+      state.balls.push(makeBall());
+      state.dropped += 1;
+      ui.emptyHint.classList.add("hidden");
+      updateUi();
+    }
+
+    function toggleRun() {
+      state.running = !state.running;
+      ui.startBtn.textContent = state.running ? "일시정지" : "시작";
+      updateUi();
+    }
+
+    function resetAll() {
+      resetBins();
+      ui.emptyHint.classList.remove("hidden");
+    }
+
+    function ballPosition(ball) {
+      const l = state.layout;
+      const total = state.rows + 1.2;
+      const scaled = ball.progress * total;
+      const row = Math.min(state.rows, Math.floor(scaled));
+      const local = Math.min(1, scaled - row);
+      let lefts;
+      let rights;
+      if (row <= 0) {
+        lefts = 0;
+        rights = 0;
+      } else {
+        rights = ball.path[row - 1];
+        lefts = row - rights;
+      }
+      const prevX = l.centerX + (rights - lefts) * l.colGap * 0.5;
+      const prevY = l.top + row * l.rowGap;
+      if (row >= state.rows) {
+        const slotX = l.centerX + (ball.finalBin - state.rows / 2) * l.slotGap;
+        const slotY = l.slotsY - 10;
+        return {
+          x: prevX + (slotX - prevX) * local,
+          y: prevY + (slotY - prevY) * local,
+        };
+      }
+      const nextRights = ball.path[row] ?? ball.finalBin;
+      const nextLefts = row + 1 - nextRights;
+      const nextX = l.centerX + (nextRights - nextLefts) * l.colGap * 0.5;
+      const nextY = l.top + (row + 1) * l.rowGap;
+      const wobble = Math.sin(local * Math.PI) * (nextX >= prevX ? 1 : -1) * l.ballRadius * 0.86;
+      return {
+        x: prevX + (nextX - prevX) * local + wobble,
+        y: prevY + (nextY - prevY) * local,
+      };
+    }
+
+    function update(timestamp) {
+      const dt = state.lastTime ? Math.min(0.05, (timestamp - state.lastTime) / 1000) : 0;
+      state.lastTime = timestamp;
+
+      if (state.running && state.dropped < state.target) {
+        state.spawnCarry += dt * state.rate;
+        while (state.spawnCarry >= 1 && state.dropped < state.target) {
+          dropOne();
+          state.spawnCarry -= 1;
+        }
+      }
+
+      if (state.dropped >= state.target && state.balls.length === 0 && state.fallingBalls.length === 0 && state.running) {
+        state.running = false;
+        ui.startBtn.textContent = "시작";
+      }
+
+      const speed = 0.36 + state.rate * 0.006;
+      for (const ball of state.balls) {
+        ball.progress += dt * speed;
+        if (ball.progress >= 1 && !ball.done) {
+          ball.done = true;
+          state.fallingBalls.push({
+            bin: ball.finalBin,
+            stackIndex: state.bins[ball.finalBin],
+            hue: ball.hue,
+            progress: 0,
+          });
+          state.bins[ball.finalBin] += 1;
+        }
+      }
+      state.balls = state.balls.filter((ball) => !ball.done);
+
+      for (const ball of state.fallingBalls) {
+        const target = stackPosition(ball);
+        const startY = state.layout.binTop + target.r * 1.4;
+        const fallDistance = Math.max(1, Math.abs(target.y - startY));
+        const boardFallSpeed = speed * Math.max(1, state.layout.slotsY - state.layout.top);
+        ball.progress += (dt * boardFallSpeed) / fallDistance;
+        if (ball.progress >= 1 && !ball.done) {
+          ball.done = true;
+          state.settledBalls.push({
+            bin: ball.bin,
+            stackIndex: ball.stackIndex,
+            hue: ball.hue,
+          });
+        }
+      }
+      state.fallingBalls = state.fallingBalls.filter((ball) => !ball.done);
+
+      updateUi();
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function updateUi() {
+      const total = state.bins.reduce((a, b) => a + b, 0);
+      const sum = state.bins.reduce((acc, count, index) => acc + count * index, 0);
+      const mean = total ? sum / total : null;
+      const variance = total && mean !== null
+        ? state.bins.reduce((acc, count, index) => acc + count * Math.pow(index - mean, 2), 0) / total
+        : null;
+      const max = Math.max(0, ...state.bins);
+      const peak = total ? state.bins.indexOf(max) : -1;
+
+      ui.countStat.textContent = total.toString();
+      ui.meanStat.textContent = mean === null ? "-" : mean.toFixed(2);
+      ui.spreadStat.textContent = variance === null ? "-" : Math.sqrt(variance).toFixed(2);
+      ui.peakStat.textContent = peak < 0 ? "-" : `${peak}번`;
+      ui.stateChip.textContent = state.running ? "실험 중" : total >= state.target ? "완료" : "대기 중";
+
+      const maxForBars = Math.max(1, max);
+      ui.bins.innerHTML = state.bins.map((count, index) => `
+        <div class="bin-col" title="${index}번 칸: ${count}개">
+          <span class="bin-bar" style="height:${Math.max(2, (count / maxForBars) * 94)}%; background:${binColor(index, 0.92)}"></span>
+          <span class="bin-label">${index}</span>
+        </div>
+      `).join("");
+    }
+
+    function binColor(index, alpha = 1) {
+      const palette = [
+        [52, 119, 235],
+        [12, 154, 132],
+        [241, 157, 56],
+        [218, 87, 83],
+        [120, 98, 214],
+        [38, 166, 91],
+        [229, 117, 45],
+        [52, 152, 219],
+        [190, 86, 185],
+        [93, 132, 48],
+        [204, 92, 46],
+        [47, 111, 168],
+        [172, 112, 42],
+        [117, 111, 125],
+        [24, 133, 154],
+      ];
+      const [r, g, b] = palette[index % palette.length];
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function woodFill(x, y, w, h, light, dark) {
+      const g = ctx.createLinearGradient(x, y, x + w, y + h);
+      g.addColorStop(0, light);
+      g.addColorStop(0.55, "#caa96b");
+      g.addColorStop(1, dark);
+      return g;
+    }
+
+    function drawWoodGrain(x, y, w, h, alpha) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+      ctx.strokeStyle = `rgba(83, 55, 28, ${alpha})`;
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 24; i += 1) {
+        const yy = y + ((i * 37) % Math.max(1, h));
+        ctx.beginPath();
+        for (let t = 0; t <= 1; t += 0.08) {
+          const xx = x + t * w;
+          const wave = Math.sin(t * 8 + i * 0.7) * 5 + Math.sin(t * 19 + i) * 2;
+          if (t === 0) ctx.moveTo(xx, yy + wave);
+          else ctx.lineTo(xx, yy + wave);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawBackdrop() {
+      const l = state.layout;
+      ctx.save();
+      const room = ctx.createLinearGradient(0, 0, 0, l.h);
+      room.addColorStop(0, "#5c6b63");
+      room.addColorStop(0.26, "#d7ddce");
+      room.addColorStop(1, "#6d5d45");
+      ctx.fillStyle = room;
+      ctx.fillRect(0, 0, l.w, l.h);
+
+      ctx.fillStyle = "rgba(151, 75, 50, 0.55)";
+      for (let x = 0; x < l.w; x += 28) ctx.fillRect(x, 0, 18, l.h);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+      for (let y = 18; y < l.h; y += 22) ctx.fillRect(0, y, l.w, 2);
+
+      ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
+      ctx.shadowBlur = 22;
+      ctx.shadowOffsetY = 12;
+      ctx.fillStyle = woodFill(l.boardX, l.boardY, l.boardW, l.boardH, "#d8bd7a", "#8b6938");
+      ctx.beginPath();
+      ctx.roundRect(l.boardX, l.boardY, l.boardW, l.boardH, 8);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      drawWoodGrain(l.boardX + 3, l.boardY + 3, l.boardW - 6, l.boardH - 6, 0.18);
+
+      ctx.strokeStyle = "#5c3f1f";
+      ctx.lineWidth = Math.max(4, l.frame * 0.18);
+      ctx.strokeRect(l.boardX + 5, l.boardY + 5, l.boardW - 10, l.boardH - 10);
+      ctx.strokeStyle = "rgba(255, 244, 204, 0.42)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(l.innerX - 4, l.innerY - 4, l.innerW + 8, l.innerH + 8);
+
+      ctx.fillStyle = "rgba(91, 60, 29, 0.5)";
+      ctx.fillRect(l.boardX + l.boardW * 0.43, l.boardY + l.boardH - l.frame * 0.7, l.boardW * 0.14, 5);
+      ctx.restore();
+    }
+
+    function drawScallopedGuide(side) {
+      const l = state.layout;
+      const sign = side === "left" ? -1 : 1;
+      const topY = l.innerY + l.innerH * 0.08;
+      const bottomY = l.binTop - 16;
+      const topX = l.centerX + sign * l.slotGap * 0.58;
+      const bottomX = l.centerX + sign * (state.rows / 2 + 0.74) * l.slotGap;
+      const steps = state.rows + 2;
+
+      ctx.save();
+      ctx.strokeStyle = "#6b4b24";
+      ctx.lineWidth = Math.max(4, l.pegRadius * 0.72);
+      ctx.lineCap = "round";
+      ctx.shadowColor = "rgba(52, 32, 14, 0.28)";
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = sign * 3;
+      ctx.shadowOffsetY = 4;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i += 1) {
+        const t = i / steps;
+        const x = topX + (bottomX - topX) * t;
+        const y = topY + (bottomY - topY) * t;
+        const notch = Math.sin(t * Math.PI * steps) * l.pegRadius * 0.5;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x + sign * notch, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawBoard() {
+      const l = state.layout;
+      ctx.save();
+
+      ctx.fillStyle = woodFill(l.innerX, l.innerY, l.innerW, l.innerH, "#d6bd7d", "#a67d43");
+      ctx.beginPath();
+      ctx.roundRect(l.innerX, l.innerY, l.innerW, l.innerH, 5);
+      ctx.fill();
+      drawWoodGrain(l.innerX, l.innerY, l.innerW, l.innerH, 0.16);
+
+      ctx.fillStyle = woodFill(l.innerX + 4, l.innerY + 4, l.innerW * 0.43, l.binTop - l.innerY, "#d9c181", "#a47a3f");
+      ctx.beginPath();
+      ctx.moveTo(l.innerX + 8, l.innerY + 6);
+      ctx.lineTo(l.centerX - l.slotGap * 0.72, l.innerY + l.innerH * 0.08);
+      ctx.lineTo(l.centerX - (state.rows / 2 + 0.82) * l.slotGap, l.binTop - 14);
+      ctx.lineTo(l.innerX + 18, l.binTop - 2);
+      ctx.lineTo(l.innerX + 8, l.innerY + 6);
+      ctx.fill();
+
+      ctx.fillStyle = woodFill(l.centerX + l.slotGap * 0.72, l.innerY + 4, l.innerW * 0.43, l.binTop - l.innerY, "#dac381", "#9f773e");
+      ctx.beginPath();
+      ctx.moveTo(l.innerX + l.innerW - 8, l.innerY + 6);
+      ctx.lineTo(l.centerX + l.slotGap * 0.72, l.innerY + l.innerH * 0.08);
+      ctx.lineTo(l.centerX + (state.rows / 2 + 0.82) * l.slotGap, l.binTop - 14);
+      ctx.lineTo(l.innerX + l.innerW - 18, l.binTop - 2);
+      ctx.lineTo(l.innerX + l.innerW - 8, l.innerY + 6);
+      ctx.fill();
+
+      drawScallopedGuide("left");
+      drawScallopedGuide("right");
+
+      for (let k = 0; k <= state.rows + 1; k += 1) {
+        const x = l.centerX + (k - 0.5 - state.rows / 2) * l.slotGap;
+        const wallW = Math.max(10, l.slotGap * 0.46);
+        ctx.fillStyle = woodFill(x - wallW / 2, l.binTop, wallW, l.binBottom - l.binTop, "#e1c987", "#a1763d");
+        ctx.beginPath();
+        ctx.roundRect(x - wallW / 2, l.binTop - 2, wallW, l.binBottom - l.binTop + 2, wallW / 2);
+        ctx.fill();
+        drawWoodGrain(x - wallW / 2, l.binTop, wallW, l.binBottom - l.binTop, 0.12);
+        ctx.strokeStyle = "rgba(80, 52, 23, 0.44)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "rgba(90, 59, 27, 0.62)";
+      ctx.fillRect(l.innerX + 8, l.binBottom + 3, l.innerW - 16, 9);
+      ctx.fillStyle = "rgba(255, 240, 186, 0.32)";
+      ctx.fillRect(l.innerX + 8, l.binBottom + 3, l.innerW - 16, 2);
+
+      for (let r = 0; r < state.rows; r += 1) {
+        const y = l.top + (r + 1) * l.rowGap;
+        for (let k = 0; k <= r; k += 1) {
+          const x = l.centerX + (k - r / 2) * l.colGap;
+          drawWoodPeg(x, y, l.pegRadius);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawWoodPeg(x, y, radius) {
+      ctx.save();
+      ctx.shadowColor = "rgba(45, 27, 11, 0.38)";
+      ctx.shadowBlur = 7;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 4;
+      const g = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.35, 1, x, y, radius * 1.2);
+      g.addColorStop(0, "#c49a54");
+      g.addColorStop(0.62, "#8d5825");
+      g.addColorStop(1, "#563116");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(66, 37, 15, 0.38)";
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i += 1) {
+        ctx.beginPath();
+        ctx.moveTo(x + i * radius * 0.22, y - radius * 0.72);
+        ctx.lineTo(x + i * radius * 0.12, y + radius * 0.72);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawHistogram() {
+      const l = state.layout;
+      const maxCount = Math.max(1, ...state.bins);
+      const total = state.bins.reduce((a, b) => a + b, 0);
+      const barW = Math.max(4, l.slotGap * 0.42);
+      const maxH = Math.max(42, (l.binBottom - l.binTop) * 0.82);
+
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.font = "700 12px Malgun Gothic, sans-serif";
+
+      for (let i = 0; i < state.bins.length; i += 1) {
+        const x = l.centerX + (i - state.rows / 2) * l.slotGap;
+        const h = (state.bins[i] / maxCount) * maxH;
+        const g = ctx.createLinearGradient(0, l.binBottom - h, 0, l.binBottom);
+        g.addColorStop(0, binColor(i, 0.64));
+        g.addColorStop(1, binColor(i, 0.28));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect(x - barW / 2, l.binBottom - h, barW, h, 4);
+        ctx.fill();
+        ctx.fillStyle = "rgba(64, 42, 20, 0.64)";
+        if (state.rows <= 11 || i % 2 === 0) ctx.fillText(String(i), x, l.binBottom + 15);
+      }
+
+      if (controls.expected.checked && total > 0) {
+        ctx.strokeStyle = "rgba(74, 50, 29, 0.62)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        for (let i = 0; i < state.bins.length; i += 1) {
+          const expectedCount = binomial(state.rows, i, state.bias) * total;
+          const x = l.centerX + (i - state.rows / 2) * l.slotGap;
+          const y = l.binBottom - (expectedCount / maxCount) * maxH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
+    }
+
+    function drawBalls() {
+      const l = state.layout;
+      for (const ball of state.balls) {
+        const p = ballPosition(ball);
+        drawGlossyBall(p.x, p.y, l.ballRadius, ball.hue, 1);
+      }
+    }
+
+    function stackPosition(ball) {
+      const l = state.layout;
+      const r = l.stackRadius;
+      const columns = Math.max(1, l.stackColumns);
+      const row = Math.floor(ball.stackIndex / columns);
+      const col = ball.stackIndex % columns;
+      const binLeft = l.centerX + (ball.bin - state.rows / 2 - 0.5) * l.slotGap;
+      const binRight = l.centerX + (ball.bin - state.rows / 2 + 0.5) * l.slotGap;
+      const padding = Math.max(r * 1.25, l.slotGap * 0.27);
+      const xMin = binLeft + padding;
+      const xMax = binRight - padding;
+      const usable = Math.max(0, xMax - xMin);
+      const x = columns === 1 ? (xMin + xMax) / 2 : xMin + (usable * col) / (columns - 1);
+      const y = l.binBottom - r - row * r * 1.82;
+      return { x, y, row, r };
+    }
+
+    function drawBinFallingBalls() {
+      const l = state.layout;
+      for (const ball of state.fallingBalls) {
+        const target = stackPosition(ball);
+        const t = Math.min(1, ball.progress);
+        const startY = l.binTop + target.r * 1.4;
+        const y = startY + (target.y - startY) * t;
+        drawGlossyBall(target.x, y, target.r, ball.hue, 1);
+      }
+    }
+
+    function drawGlossyBall(x, y, radius, hue, alpha) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = "rgba(30, 34, 38, 0.38)";
+      ctx.shadowBlur = Math.max(4, radius * 1.45);
+      ctx.shadowOffsetY = Math.max(1, radius * 0.45);
+      const g = ctx.createRadialGradient(
+        x - radius * 0.35,
+        y - radius * 0.42,
+        1,
+        x,
+        y,
+        radius * 1.15,
+      );
+      g.addColorStop(0, "#ffffff");
+      g.addColorStop(0.24, "#e9edf0");
+      g.addColorStop(0.54, "#aeb7bd");
+      g.addColorStop(1, "#58636b");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.48)";
+      ctx.lineWidth = Math.max(0.8, radius * 0.13);
+      ctx.beginPath();
+      ctx.arc(x - radius * 0.24, y - radius * 0.28, radius * 0.35, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(48, 54, 60, 0.42)";
+      ctx.lineWidth = Math.max(0.8, radius * 0.09);
+      ctx.beginPath();
+      ctx.arc(x, y, radius * 0.96, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawSettledBalls() {
+      const l = state.layout;
+      for (const ball of state.settledBalls) {
+        const p = stackPosition(ball);
+        if (p.y > l.stackTop - p.r * 2) {
+          drawGlossyBall(p.x, p.y, p.r, ball.hue, 0.94);
+        } else {
+          const compressedY = l.stackTop + ((p.row % 7) * p.r * 0.28);
+          drawGlossyBall(p.x, compressedY, Math.max(1.6, p.r * 0.78), ball.hue, 0.42);
+        }
+      }
+    }
+
+    function drawLabels() {
+      const l = state.layout;
+      ctx.save();
+      ctx.fillStyle = "rgba(74, 48, 22, 0.72)";
+      ctx.font = "800 13px Malgun Gothic, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("출발", l.centerX, l.innerY + 20);
+      ctx.fillText("구슬이 쌓이는 분포", l.centerX, l.binTop - 14);
+      if (controls.expected.checked) {
+        ctx.fillStyle = "rgba(74, 48, 22, 0.56)";
+        ctx.textAlign = "right";
+        ctx.fillText("점선: 이론값", l.innerX + l.innerW - 12, l.innerY + 20);
+      }
+      ctx.restore();
+    }
+
+    function draw() {
+      if (!state.layout) return;
+      const mode = controls.mode.value;
+      drawBackdrop();
+      if (mode !== "hist") drawBoard();
+      if (mode !== "balls") drawHistogram();
+      if (mode !== "hist") drawSettledBalls();
+      if (mode !== "hist") drawBinFallingBalls();
+      if (mode !== "hist") drawBalls();
+      drawLabels();
+    }
+
+    ui.startBtn.addEventListener("click", toggleRun);
+    ui.dropBtn.addEventListener("click", () => {
+      dropOne();
+      draw();
+    });
+    ui.resetBtn.addEventListener("click", resetAll);
+
+    for (const key of ["target", "rate", "bias"]) {
+      controls[key].addEventListener("input", syncControls);
+    }
+    controls.rows.addEventListener("input", syncControls);
+    controls.mode.addEventListener("change", draw);
+    controls.expected.addEventListener("change", draw);
+
+    window.addEventListener("resize", resize);
+    syncControls();
+    resize();
+    requestAnimationFrame(update);
+  </script>
+</body>
+</html>
