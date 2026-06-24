@@ -155,6 +155,49 @@
       background: #fff8f4;
     }
 
+    .btn.small {
+      min-height: 38px;
+      font-size: 13px;
+      padding: 0 8px;
+    }
+
+    .btn.ghost {
+      color: #8a5a3a;
+      background: #fff6f0;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .panel-title {
+      color: #2d3a48;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .preset-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+    }
+
+    .compare-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
     .panel {
       display: grid;
       gap: 10px;
@@ -364,19 +407,44 @@
       background: linear-gradient(180deg, #fff8e8, #f0dfb6);
     }
 
-    .question-box,
     .mini-table {
       display: grid;
       gap: 8px;
       align-content: start;
     }
 
-    .question-box h3,
+    .question-box {
+      align-self: start;
+    }
+
     .mini-table h3 {
       margin: 0;
       color: #273849;
       font-size: 15px;
       letter-spacing: 0;
+    }
+
+    .question-box > summary {
+      margin: 0 0 8px;
+      color: #273849;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .question-box > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .question-box > summary::after {
+      content: " ▸";
+      color: var(--muted);
+    }
+
+    .question-box[open] > summary::after {
+      content: " ▾";
     }
 
     .question-box ol {
@@ -436,27 +504,46 @@
     @media (max-width: 900px) {
       .app {
         grid-template-columns: 1fr;
-        width: min(100vw - 18px, 760px);
+        width: min(100vw - 12px, 780px);
+        min-height: auto;
+        margin: 6px auto 16px;
+        gap: 12px;
       }
 
       .side {
         order: 2;
         max-height: none;
+        padding: 12px;
       }
 
       .stage {
+        order: 1;
+        grid-template-rows: auto minmax(68vh, 74vh) auto;
+        min-height: auto;
+      }
+
+      .canvas-wrap {
         min-height: 68vh;
       }
 
       .bottom {
         grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px 12px;
+      }
+
+      .question-box ol {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 18px;
       }
     }
 
     @media (max-width: 540px) {
       .app {
-        width: calc(100vw - 12px);
-        margin: 8px auto;
+        width: 100vw;
+        margin: 0;
+        gap: 8px;
       }
 
       .toolbar,
@@ -464,13 +551,59 @@
         grid-template-columns: 1fr;
       }
 
+      .side,
+      .stage {
+        border-radius: 0;
+      }
+
       .stage-head {
         align-items: flex-start;
         flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+
+      .stage-head h2 {
+        font-size: 17px;
+      }
+
+      .stage-caption {
+        display: none;
       }
 
       .chips {
         justify-content: flex-start;
+        gap: 6px;
+      }
+
+      .chip {
+        min-height: 28px;
+        padding: 5px 8px;
+        font-size: 12px;
+      }
+
+      .stage {
+        grid-template-rows: auto minmax(72vh, 78vh) auto;
+      }
+
+      .canvas-wrap {
+        min-height: 72vh;
+      }
+
+      .bottom {
+        padding: 8px 10px 10px;
+      }
+
+      .question-box ol {
+        grid-template-columns: 1fr;
+      }
+
+      .mini-table h3 {
+        font-size: 13px;
+      }
+
+      .bins {
+        height: 78px;
       }
 
       h1 {
@@ -493,6 +626,15 @@
         <button class="btn" id="dropBtn" type="button">1개</button>
         <button class="btn warn" id="resetBtn" type="button">초기화</button>
       </div>
+
+      <section class="panel presets" aria-label="실험 프리셋">
+        <span class="panel-title">빠른 설정</span>
+        <div class="preset-row">
+          <button class="btn small" type="button" data-preset="fair">공정한 동전</button>
+          <button class="btn small" type="button" data-preset="biased">치우친 동전</button>
+          <button class="btn small" type="button" data-preset="clt">못 줄 늘리기</button>
+        </div>
+      </section>
 
       <section class="panel control">
         <label for="rows">못 줄 수 <span class="value" id="rowsValue">10</span></label>
@@ -528,6 +670,15 @@
         <label class="check"><input id="soundless" type="checkbox" checked /> 조용한 수업 모드</label>
       </section>
 
+      <section class="panel compare" aria-label="분포 비교">
+        <span class="panel-title">분포 비교</span>
+        <div class="compare-row">
+          <button class="btn small" id="saveRefBtn" type="button">기준으로 저장</button>
+          <button class="btn small ghost" id="clearRefBtn" type="button" disabled>지우기</button>
+        </div>
+        <p class="compare-hint" id="refHint">공정한 동전으로 실험한 뒤 '기준으로 저장'하고, 확률을 바꿔 다시 실험하면 두 분포를 겹쳐 비교할 수 있어요.</p>
+      </section>
+
       <section class="stats" aria-label="실험 통계">
         <div class="stat"><b id="countStat">0</b><span>떨어진 구슬</span></div>
         <div class="stat"><b id="meanStat">-</b><span>평균 칸</span></div>
@@ -559,14 +710,14 @@
       </div>
 
       <footer class="bottom">
-        <div class="question-box">
-          <h3>수업 질문</h3>
+        <details class="question-box" id="questionBox" open>
+          <summary>수업 질문</summary>
           <ol>
             <li>구슬 하나의 위치는 예측하기 어려운데, 전체 모양은 왜 예측 가능해질까요?</li>
             <li>못 줄 수를 늘리면 가운데와 양쪽의 차이가 어떻게 달라지나요?</li>
             <li>오른쪽 확률을 60%로 바꾸면 평균 위치는 어느 쪽으로 움직이나요?</li>
           </ol>
-        </div>
+        </details>
         <div class="mini-table">
           <h3>칸별 분포</h3>
           <div class="bins" id="bins"></div>
@@ -604,6 +755,10 @@
       stateChip: document.getElementById("stateChip"),
       bins: document.getElementById("bins"),
       emptyHint: document.getElementById("emptyHint"),
+      saveRefBtn: document.getElementById("saveRefBtn"),
+      clearRefBtn: document.getElementById("clearRefBtn"),
+      refHint: document.getElementById("refHint"),
+      questionBox: document.getElementById("questionBox"),
     };
 
     const state = {
@@ -620,7 +775,51 @@
       lastTime: 0,
       spawnCarry: 0,
       layout: null,
+      reference: null,
     };
+
+    const REF_HINT_DEFAULT = "공정한 동전으로 실험한 뒤 '기준으로 저장'하고, 확률을 바꿔 다시 실험하면 두 분포를 겹쳐 비교할 수 있어요.";
+
+    let audioCtx = null;
+    let lastTickAt = 0;
+    let looping = false;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (err) {
+          audioCtx = null;
+          return;
+        }
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function playTick(bin) {
+      if (controls.soundless.checked || !audioCtx) return;
+      const now = performance.now();
+      if (now - lastTickAt < 45) return;
+      lastTickAt = now;
+      const ratio = state.rows > 0 ? bin / state.rows : 0.5;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = 320 + ratio * 360;
+      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.13);
+    }
+
+    function startLoop() {
+      if (looping) return;
+      looping = true;
+      state.lastTime = 0;
+      requestAnimationFrame(update);
+    }
 
     function factorialRatio(n, k) {
       let result = 1;
@@ -648,31 +847,34 @@
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       const rows = state.rows;
-      const marginX = Math.max(30, w * 0.065);
-      const marginY = Math.max(24, h * 0.045);
+      const compact = w < 620;
+      const marginX = compact ? Math.max(8, w * 0.02) : Math.max(30, w * 0.065);
+      const marginY = compact ? Math.max(8, h * 0.018) : Math.max(24, h * 0.045);
       const boardX = marginX;
       const boardY = marginY;
       const boardW = w - marginX * 2;
       const boardH = h - marginY * 1.35;
-      const frame = Math.max(18, Math.min(38, boardW * 0.045));
+      const frame = compact
+        ? Math.max(10, Math.min(22, boardW * 0.032))
+        : Math.max(18, Math.min(38, boardW * 0.045));
       const innerX = boardX + frame;
       const innerY = boardY + frame;
       const innerW = boardW - frame * 2;
       const innerH = boardH - frame * 2;
-      const top = innerY + Math.max(34, innerH * 0.08);
-      const binTop = innerY + innerH * 0.58;
-      const histBase = innerY + innerH - Math.max(22, innerH * 0.035);
+      const top = innerY + (compact ? Math.max(20, innerH * 0.055) : Math.max(34, innerH * 0.08));
+      const binTop = innerY + innerH * (compact ? 0.61 : 0.58);
+      const histBase = innerY + innerH - (compact ? Math.max(14, innerH * 0.025) : Math.max(22, innerH * 0.035));
       const binBottom = histBase - 7;
-      const boardHeight = binTop - top - Math.max(18, innerH * 0.035);
+      const boardHeight = binTop - top - (compact ? Math.max(10, innerH * 0.024) : Math.max(18, innerH * 0.035));
       const rowGap = boardHeight / Math.max(rows, 1);
       const colGap = Math.min(innerW / (rows + 2.7), rowGap * 1.12);
       const centerX = w / 2;
-      const pegRadius = Math.max(5, Math.min(10, colGap * 0.17));
-      const ballRadius = Math.max(5.4, Math.min(9.2, colGap * 0.18));
+      const pegRadius = Math.max(compact ? 3.8 : 5, Math.min(compact ? 8 : 10, colGap * 0.17));
+      const ballRadius = Math.max(compact ? 4.2 : 5.4, Math.min(compact ? 8 : 9.2, colGap * 0.18));
       const slotGap = Math.min(innerW / (rows + 1.6), colGap * 1.06);
       const slotsY = binTop;
-      const stackTop = binTop + Math.max(12, ballRadius * 1.5);
-      const stackHeight = Math.max(80, binBottom - stackTop - 6);
+      const stackTop = binTop + Math.max(compact ? 8 : 12, ballRadius * 1.5);
+      const stackHeight = Math.max(compact ? 64 : 80, binBottom - stackTop - 6);
       const expectedPeak = Math.max(
         8,
         ...Array.from({ length: rows + 1 }, (_, i) => binomial(rows, i, state.bias) * state.target),
@@ -731,7 +933,6 @@
         finalBin: rights,
         progress: 0,
         done: false,
-        hue: 0,
       };
     }
 
@@ -744,8 +945,10 @@
     }
 
     function toggleRun() {
+      ensureAudio();
       state.running = !state.running;
       ui.startBtn.textContent = state.running ? "일시정지" : "시작";
+      if (state.running) startLoop();
       updateUi();
     }
 
@@ -815,7 +1018,6 @@
           state.fallingBalls.push({
             bin: ball.finalBin,
             stackIndex: state.bins[ball.finalBin],
-            hue: ball.hue,
             progress: 0,
           });
           state.bins[ball.finalBin] += 1;
@@ -834,15 +1036,19 @@
           state.settledBalls.push({
             bin: ball.bin,
             stackIndex: ball.stackIndex,
-            hue: ball.hue,
           });
+          playTick(ball.bin);
         }
       }
       state.fallingBalls = state.fallingBalls.filter((ball) => !ball.done);
 
       updateUi();
       draw();
-      requestAnimationFrame(update);
+      if (state.running || state.balls.length > 0 || state.fallingBalls.length > 0) {
+        requestAnimationFrame(update);
+      } else {
+        looping = false;
+      }
     }
 
     function updateUi() {
@@ -870,7 +1076,7 @@
       `).join("");
     }
 
-    function binColor(index, alpha = 1) {
+    function binRGB(index) {
       const palette = [
         [52, 119, 235],
         [12, 154, 132],
@@ -888,8 +1094,21 @@
         [117, 111, 125],
         [24, 133, 154],
       ];
-      const [r, g, b] = palette[index % palette.length];
+      const len = palette.length;
+      return palette[((index % len) + len) % len];
+    }
+
+    function binColor(index, alpha = 1) {
+      const [r, g, b] = binRGB(index);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function shade([r, g, b], factor) {
+      if (factor >= 0) {
+        return [r + (255 - r) * factor, g + (255 - g) * factor, b + (255 - b) * factor];
+      }
+      const k = 1 + factor;
+      return [r * k, g * k, b * k];
     }
 
     function woodFill(x, y, w, h, light, dark) {
@@ -1122,7 +1341,7 @@
       const l = state.layout;
       for (const ball of state.balls) {
         const p = ballPosition(ball);
-        drawGlossyBall(p.x, p.y, l.ballRadius, ball.hue, 1);
+        drawGlossyBall(p.x, p.y, l.ballRadius, ball.finalBin, 1);
       }
     }
 
@@ -1150,11 +1369,13 @@
         const t = Math.min(1, ball.progress);
         const startY = l.binTop + target.r * 1.4;
         const y = startY + (target.y - startY) * t;
-        drawGlossyBall(target.x, y, target.r, ball.hue, 1);
+        drawGlossyBall(target.x, y, target.r, ball.bin, 1);
       }
     }
 
-    function drawGlossyBall(x, y, radius, hue, alpha) {
+    function drawGlossyBall(x, y, radius, bin, alpha) {
+      const base = binRGB(typeof bin === "number" ? bin : 0);
+      const rgb = (c) => `rgb(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])})`;
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.shadowColor = "rgba(30, 34, 38, 0.38)";
@@ -1169,9 +1390,9 @@
         radius * 1.15,
       );
       g.addColorStop(0, "#ffffff");
-      g.addColorStop(0.24, "#e9edf0");
-      g.addColorStop(0.54, "#aeb7bd");
-      g.addColorStop(1, "#58636b");
+      g.addColorStop(0.26, rgb(shade(base, 0.78)));
+      g.addColorStop(0.6, rgb(shade(base, 0.18)));
+      g.addColorStop(1, rgb(shade(base, -0.42)));
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -1195,12 +1416,84 @@
       for (const ball of state.settledBalls) {
         const p = stackPosition(ball);
         if (p.y > l.stackTop - p.r * 2) {
-          drawGlossyBall(p.x, p.y, p.r, ball.hue, 0.94);
+          drawGlossyBall(p.x, p.y, p.r, ball.bin, 0.94);
         } else {
           const compressedY = l.stackTop + ((p.row % 7) * p.r * 0.28);
-          drawGlossyBall(p.x, compressedY, Math.max(1.6, p.r * 0.78), ball.hue, 0.42);
+          drawGlossyBall(p.x, compressedY, Math.max(1.6, p.r * 0.78), ball.bin, 0.42);
         }
       }
+    }
+
+    const PRESETS = {
+      fair: { rows: 10, target: 400, rate: 16, bias: 50 },
+      biased: { rows: 10, target: 400, rate: 16, bias: 65 },
+      clt: { rows: 14, target: 800, rate: 28, bias: 50 },
+    };
+
+    function applyPreset(name) {
+      const cfg = PRESETS[name];
+      if (!cfg) return;
+      controls.rows.value = cfg.rows;
+      controls.target.value = cfg.target;
+      controls.rate.value = cfg.rate;
+      controls.bias.value = cfg.bias;
+      syncControls();
+      resetAll();
+      ensureAudio();
+      state.running = true;
+      ui.startBtn.textContent = "일시정지";
+      startLoop();
+      updateUi();
+    }
+
+    function saveReference() {
+      const total = state.bins.reduce((a, b) => a + b, 0);
+      if (total === 0) {
+        ui.refHint.textContent = "먼저 구슬을 떨어뜨린 뒤 저장하세요.";
+        return;
+      }
+      state.reference = {
+        bins: state.bins.slice(),
+        rows: state.rows,
+        bias: state.bias,
+        total,
+      };
+      ui.clearRefBtn.disabled = false;
+      ui.refHint.textContent = `기준 저장됨 · ${state.reference.rows}줄 · p=${state.reference.bias.toFixed(2)} · ${total}개. 설정을 바꿔 다시 실험해 보세요.`;
+      draw();
+    }
+
+    function clearReference() {
+      state.reference = null;
+      ui.clearRefBtn.disabled = true;
+      ui.refHint.textContent = REF_HINT_DEFAULT;
+      draw();
+    }
+
+    function drawReference() {
+      const ref = state.reference;
+      if (!ref) return;
+      const l = state.layout;
+      const maxH = Math.max(42, (l.binBottom - l.binTop) * 0.82);
+      const refMax = Math.max(1, ...ref.bins);
+      const points = ref.bins.map((count, i) => ({
+        x: l.centerX + (i - ref.rows / 2) * l.slotGap,
+        y: l.binBottom - (count / refMax) * maxH,
+      }));
+      ctx.save();
+      ctx.strokeStyle = "rgba(124, 92, 255, 0.95)";
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.stroke();
+      ctx.fillStyle = "rgba(124, 92, 255, 0.95)";
+      for (const p of points) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     function drawLabels() {
@@ -1216,6 +1509,11 @@
         ctx.textAlign = "right";
         ctx.fillText("점선: 이론값", l.innerX + l.innerW - 12, l.innerY + 20);
       }
+      if (state.reference) {
+        ctx.fillStyle = "rgba(124, 92, 255, 0.95)";
+        ctx.textAlign = "left";
+        ctx.fillText("보라 실선: 저장된 기준", l.innerX + 12, l.innerY + 20);
+      }
       ctx.restore();
     }
 
@@ -1225,6 +1523,7 @@
       drawBackdrop();
       if (mode !== "hist") drawBoard();
       if (mode !== "balls") drawHistogram();
+      if (mode !== "balls") drawReference();
       if (mode !== "hist") drawSettledBalls();
       if (mode !== "hist") drawBinFallingBalls();
       if (mode !== "hist") drawBalls();
@@ -1233,8 +1532,9 @@
 
     ui.startBtn.addEventListener("click", toggleRun);
     ui.dropBtn.addEventListener("click", () => {
+      ensureAudio();
       dropOne();
-      draw();
+      startLoop();
     });
     ui.resetBtn.addEventListener("click", resetAll);
 
@@ -1245,10 +1545,16 @@
     controls.mode.addEventListener("change", draw);
     controls.expected.addEventListener("change", draw);
 
+    ui.saveRefBtn.addEventListener("click", saveReference);
+    ui.clearRefBtn.addEventListener("click", clearReference);
+    for (const btn of document.querySelectorAll("[data-preset]")) {
+      btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+    }
+
     window.addEventListener("resize", resize);
     syncControls();
     resize();
-    requestAnimationFrame(update);
+    if (window.innerWidth <= 540) ui.questionBox.removeAttribute("open");
   </script>
 </body>
 </html>
