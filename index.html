@@ -781,13 +781,30 @@
     const REF_HINT_DEFAULT = "공정한 동전으로 실험한 뒤 '기준으로 저장'하고, 확률을 바꿔 다시 실험하면 두 분포를 겹쳐 비교할 수 있어요.";
 
     let audioCtx = null;
+    let masterGain = null;
+    let noiseBuffer = null;
     let lastTickAt = 0;
+    let lastPegAt = 0;
     let looping = false;
+    // 전체 음량(0~1). 너무 작으면 키우고, 시끄러우면 줄이세요.
+    const MASTER_VOLUME = 0.95;
+
+    function makeNoiseBuffer() {
+      const len = Math.floor(audioCtx.sampleRate * 0.08);
+      const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i += 1) data[i] = Math.random() * 2 - 1;
+      return buf;
+    }
 
     function ensureAudio() {
       if (!audioCtx) {
         try {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          masterGain = audioCtx.createGain();
+          masterGain.gain.value = MASTER_VOLUME;
+          masterGain.connect(audioCtx.destination);
+          noiseBuffer = makeNoiseBuffer();
         } catch (err) {
           audioCtx = null;
           return;
@@ -796,22 +813,60 @@
       if (audioCtx.state === "suspended") audioCtx.resume();
     }
 
+    // 쇠구슬이 나무 못에 부딪히는 "톡" 소리 = 나무 몸통(필터된 노이즈) + 금속성 팅(사인)
+    function playPeg() {
+      if (controls.soundless.checked || !audioCtx || !noiseBuffer) return;
+      const now = performance.now();
+      if (now - lastPegAt < 18) return;
+      lastPegAt = now;
+      const t = audioCtx.currentTime;
+
+      // 1) 나무 몸통: 짧은 노이즈를 밴드패스로 통과시켜 "톡" 하는 타격감
+      const src = audioCtx.createBufferSource();
+      src.buffer = noiseBuffer;
+      const bp = audioCtx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 1600 + Math.random() * 700;
+      bp.Q.value = 5 + Math.random() * 4;
+      const bodyGain = audioCtx.createGain();
+      bodyGain.gain.setValueAtTime(0.0001, t);
+      bodyGain.gain.exponentialRampToValueAtTime(0.55, t + 0.001);
+      bodyGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      src.connect(bp).connect(bodyGain).connect(masterGain);
+      src.start(t);
+      src.stop(t + 0.08);
+
+      // 2) 쇠구슬의 금속성 잔향: 짧고 높은 사인 "팅"
+      const ping = audioCtx.createOscillator();
+      const pingGain = audioCtx.createGain();
+      ping.type = "sine";
+      ping.frequency.setValueAtTime(2600 + Math.random() * 900, t);
+      pingGain.gain.setValueAtTime(0.0001, t);
+      pingGain.gain.exponentialRampToValueAtTime(0.16, t + 0.001);
+      pingGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+      ping.connect(pingGain).connect(masterGain);
+      ping.start(t);
+      ping.stop(t + 0.04);
+    }
+
+    // 칸에 안착할 때 살짝 낮은 "통" 소리
     function playTick(bin) {
       if (controls.soundless.checked || !audioCtx) return;
       const now = performance.now();
-      if (now - lastTickAt < 45) return;
+      if (now - lastTickAt < 30) return;
       lastTickAt = now;
+      const t = audioCtx.currentTime;
       const ratio = state.rows > 0 ? bin / state.rows : 0.5;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "triangle";
-      osc.frequency.value = 320 + ratio * 360;
-      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.005);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.12);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.13);
+      osc.frequency.value = 220 + ratio * 240;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.5, t + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.connect(gain).connect(masterGain);
+      osc.start(t);
+      osc.stop(t + 0.17);
     }
 
     function startLoop() {
@@ -933,6 +988,7 @@
         finalBin: rights,
         progress: 0,
         done: false,
+        lastRow: -1,
       };
     }
 
@@ -1013,6 +1069,11 @@
       const speed = 0.36 + state.rate * 0.006;
       for (const ball of state.balls) {
         ball.progress += dt * speed;
+        const row = Math.min(state.rows, Math.floor(ball.progress * (state.rows + 1.2)));
+        if (row > ball.lastRow && row >= 1 && row <= state.rows) {
+          ball.lastRow = row;
+          playPeg();
+        }
         if (ball.progress >= 1 && !ball.done) {
           ball.done = true;
           state.fallingBalls.push({
